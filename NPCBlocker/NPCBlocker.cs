@@ -1,35 +1,20 @@
-﻿/*
- * 
- * Welcome to this template plugin.
- * Level: All Levels
- * Purpose: To get a working model for new plugins to be built off.  This plugin will
- * compile immediately, all you have to do is rename TemplatePlugin to reflect 
- * the purpose of the plugin.
- * 
- * You may need to delete the references to TerrariaServer and TShockAPI.  They 
- * could be pointing to my current folder.  Just remove them and then right-click the
- * references folder, go to browse go to the dll folder, and select both.
- * 
- */
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
-using Mono.Data.Sqlite;
-using MySql.Data.MySqlClient;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.DB;
 using Terraria;
+using Newtonsoft.Json;
 
 namespace NPCBlocker
 {
-    [ApiVersion(1, 14)]
+    [ApiVersion(1, 15)]
     public class NPCBlocker : TerrariaPlugin
     {
-        private IDbConnection db;
         private List<int> blockedNPC = new List<int>();
+
         public override Version Version
         {
             get { return new Version(1,10); }
@@ -58,128 +43,71 @@ namespace NPCBlocker
 
         public override void Initialize()
         {
-            TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", AddNpc, "blacknpc"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNpc, "whitenpc"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", AddNPC, "blacknpc"));
+            TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNPC, "whitenpc"));
             ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn);
-            StartDB();
+            LoadConfig();
         }
 
-        public void StartDB()
-        {
-            SetupDb();
-            ReadDb();
-        }
-
-        private void SetupDb()
-        {
-            if (TShock.Config.StorageType.ToLower() == "sqlite")
-            {
-                string sql = Path.Combine(TShock.SavePath, "npc_blocker.sqlite");
-                db = new SqliteConnection(string.Format("uri=file://{0},Version=3", sql));
-            }
-            else if (TShock.Config.StorageType.ToLower() == "mysql")
-            {
-                try
-                {
-                    var hostport = TShock.Config.MySqlHost.Split(':');
-                    db = new MySqlConnection();
-                    db.ConnectionString =
-                        String.Format("Server={0}; Port={1}; Database={2}; Uid={3}; Pwd={4};",
-                                      hostport[0],
-                                      hostport.Length > 1 ? hostport[1] : "3306",
-                                      TShock.Config.MySqlDbName,
-                                      TShock.Config.MySqlUsername,
-                                      TShock.Config.MySqlPassword
-                            );
-                }
-                catch (MySqlException ex)
-                {
-                    Log.Error(ex.ToString());
-                    throw new Exception("MySql not setup correctly");
-                }
-            }
-            else
-            {
-                throw new Exception("Invalid storage type");
-            }
-            
-            var table2 = new SqlTable("Blocked_NPC",
-                                     new SqlColumn("ID", MySqlDbType.Int32)
-                );
-            var creator2 = new SqlTableCreator(db,
-                                              db.GetSqlType() == SqlType.Sqlite
-                                                ? (IQueryBuilder)new SqliteQueryCreator()
-                                                : new MysqlQueryCreator());
-            creator2.EnsureExists(table2);
-        }
-
-        private void ReadDb()
-        {
-            String query = "SELECT * FROM Blocked_NPC";
-
-            var reader = db.QueryReader(query);
-	
-			while (reader.Read())
+		public string ConfigPath
+		{
+			get
 			{
-                blockedNPC.Add(reader.Get<int>("ID"));
+				return Path.Combine(TShock.SavePath, "NPCBlocker.json");
 			}
-        }
+		}
 
-        private void AddNpc(CommandArgs args)
+		private void LoadConfig()
+		{
+			if (!File.Exists(ConfigPath)) File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(new List<int> { 24, 48, 59, 60, 61, 69, 94 }, Formatting.Indented));
+			blockedNPC = JsonConvert.DeserializeObject<List<int>>(File.ReadAllText(ConfigPath));
+		}
+
+		private void SaveConfig()
+		{
+			File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(blockedNPC, Formatting.Indented));
+		}
+
+        private void AddNPC(CommandArgs args)
         {
             if (args.Parameters.Count < 1)
             {
-                args.Player.SendMessage("You must specify a npc id to add.", Color.Red);
-                return;
-            }
-            string tile = args.Parameters[0];
-            int id;
-            if (!int.TryParse(tile, out id))
-            {
-                args.Player.SendMessage(String.Format("Npc id '{0}' is not a valid number.", id), Color.Red);
+                args.Player.SendMessage("You must specify an NPC ID to add.", Color.Red);
                 return;
             }
 
-            String query = "INSERT INTO Blocked_NPC (ID) VALUES (@0);";
+            int ID;
 
-            if (db.Query(query, id) != 1)
+			if (!int.TryParse(args.Parameters[0], out ID))
             {
-                Log.ConsoleError("Inserting into the database has failed!");
-                args.Player.SendMessage(String.Format("Inserting into the database has failed!", id), Color.Red);
+				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not a valid number.", args.Parameters[0]));
+                return;
             }
-            else
-            {
-                args.Player.SendMessage(String.Format("Successfully banned {0}", id), Color.Red);
-                blockedNPC.Add(id);
-            }
+
+			blockedNPC.Add(ID);
+			args.Player.SendSuccessMessage(string.Format("NPC ID '{0}' succesfully blacklisted.", ID));
+			SaveConfig();
         }
 
-        private void DelNpc(CommandArgs args)
+        private void DelNPC(CommandArgs args)
         {
             if (args.Parameters.Count < 1)
             {
-                args.Player.SendMessage("You must specify a npc id to remove.", Color.Red);
+                args.Player.SendMessage("You must specify an NPC ID to remove.", Color.Red);
                 return;
             }
-            string tile = args.Parameters[0];
-            int id;
-            if (!int.TryParse(tile, out id))
-            {
-                args.Player.SendMessage(String.Format("Npc id '{0}' is not a valid number.", id), Color.Red);
-                return;
-            }
-            String query = "DELETE FROM Blocked_NPC WHERE ID = @0;";
 
-            if (db.Query(query, id) != 1)
+            int ID;
+
+			if (!int.TryParse(args.Parameters[0], out ID))
             {
-                Log.ConsoleError("Removing from the database has failed!");
-                args.Player.SendMessage(String.Format("Removing from the database has failed!  Are you sure {0} is banned?", id), Color.Red);
+				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not a valid number.", args.Parameters[0]));
+                return;
             }
-            else
-            {
-                args.Player.SendMessage(String.Format("Successfully unbanned {0}", id), Color.Green);
-                blockedNPC.Remove(id);
-            }
+
+			blockedNPC.Remove(ID);
+			args.Player.SendSuccessMessage(string.Format("NPC ID '{0}' succesfully un-blacklisted.", ID));
+			SaveConfig();
         }
 
         protected override void Dispose(bool disposing)
@@ -196,6 +124,7 @@ namespace NPCBlocker
         {
             if (args.Handled)
                 return;
+
             if (blockedNPC.Contains(args.Npc.netID))
             {
                 args.Handled = true;
