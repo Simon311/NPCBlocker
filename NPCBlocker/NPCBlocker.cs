@@ -45,7 +45,7 @@ namespace NPCBlocker
         {
             TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", AddNPC, "blacknpc"));
             TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNPC, "whitenpc"));
-            ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn);
+            ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn, 100);
             LoadConfig();
         }
 
@@ -128,6 +128,8 @@ namespace NPCBlocker
             if (blockedNPC.Contains(args.Npc.netID))
             {
                 args.Handled = true;
+				args.Npc.active = false;
+				args.Npc.type = 0;
                 return;
             }
         }
