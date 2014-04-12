@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.IO;
+using System.Reflection;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.DB;
@@ -10,44 +11,44 @@ using Newtonsoft.Json;
 
 namespace NPCBlocker
 {
-    [ApiVersion(1, 15)]
-    public class NPCBlocker : TerrariaPlugin
-    {
-        private List<int> blockedNPC = new List<int>();
+	[ApiVersion(1, 15)]
+	public class NPCBlocker : TerrariaPlugin
+	{
+		private List<int> blockedNPC = new List<int>();
 
-        public override Version Version
-        {
-            get { return new Version(1,10); }
-        }
+		public override Version Version
+		{
+			get { return Assembly.GetExecutingAssembly().GetName().Version; }
+		}
 
-        public override string Name
-        {
-            get { return "NPC Blocker"; }
-        }
+		public override string Name
+		{
+			get { return "NPC Blocker"; }
+		}
 
-        public override string Author
-        {
-            get { return "Zack Piispanen"; }
-        }
+		public override string Author
+		{
+			get { return "Zack Piispanen & Simon311"; }
+		}
 
-        public override string Description
-        {
-            get { return "Blocks npcs from being spawned."; }
-        }
+		public override string Description
+		{
+			get { return "Blocks npcs from being spawned."; }
+		}
 
-        public NPCBlocker(Main game)
-            : base(game)
-        {
-            Order = 4;
-        }
+		public NPCBlocker(Main game)
+			: base(game)
+		{
+			Order = 4;
+		}
 
-        public override void Initialize()
-        {
-            TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", AddNPC, "blacknpc"));
-            TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNPC, "whitenpc"));
-            ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn, 100);
-            LoadConfig();
-        }
+		public override void Initialize()
+		{
+			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", AddNPC, "blacknpc"));
+			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNPC, "whitenpc"));
+			ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn, 100);
+			LoadConfig();
+		}
 
 		public string ConfigPath
 		{
@@ -68,70 +69,87 @@ namespace NPCBlocker
 			File.WriteAllText(ConfigPath, JsonConvert.SerializeObject(blockedNPC, Formatting.Indented));
 		}
 
-        private void AddNPC(CommandArgs args)
-        {
-            if (args.Parameters.Count < 1)
-            {
-                args.Player.SendMessage("You must specify an NPC ID to add.", Color.Red);
-                return;
-            }
+		private void AddNPC(CommandArgs args)
+		{
+			if (args.Parameters.Count < 1)
+			{
+				args.Player.SendMessage("You must specify an NPC ID to add.", Color.Red);
+				return;
+			}
 
-            int ID;
+			int ID;
 
 			if (!int.TryParse(args.Parameters[0], out ID))
-            {
+			{
 				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not a valid number.", args.Parameters[0]));
-                return;
-            }
+				return;
+			}
+
+			if (blockedNPC.Contains(ID))
+			{
+				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is already blacklisted!", args.Parameters[0]));
+				return;
+			}
 
 			blockedNPC.Add(ID);
 			args.Player.SendSuccessMessage(string.Format("NPC ID '{0}' succesfully blacklisted.", ID));
 			SaveConfig();
-        }
+		}
 
-        private void DelNPC(CommandArgs args)
-        {
-            if (args.Parameters.Count < 1)
-            {
-                args.Player.SendMessage("You must specify an NPC ID to remove.", Color.Red);
-                return;
-            }
+		private void DelNPC(CommandArgs args)
+		{
+			if (args.Parameters.Count < 1)
+			{
+				args.Player.SendMessage("You must specify an NPC ID to remove.", Color.Red);
+				return;
+			}
 
-            int ID;
+			int ID;
 
 			if (!int.TryParse(args.Parameters[0], out ID))
-            {
+			{
 				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not a valid number.", args.Parameters[0]));
-                return;
-            }
+				return;
+			}
+
+			if (!blockedNPC.Contains(ID))
+			{
+				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not blacklisted!", args.Parameters[0]));
+				return;
+			}
 
 			blockedNPC.Remove(ID);
-			args.Player.SendSuccessMessage(string.Format("NPC ID '{0}' succesfully un-blacklisted.", ID));
+			args.Player.SendSuccessMessage(String.Format("NPC ID '{0}' succesfully un-blacklisted.", ID));
 			SaveConfig();
-        }
+		}
 
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
+		private void PrintNPC(CommandArgs args)
+		{
+			args.Player.SendInfoMessage("Banned NPC IDs: " + string.Join(", ", blockedNPC) + ".");
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
 				ServerApi.Hooks.NpcSpawn.Deregister(this, OnSpawn);
-            }
+			}
 
-            base.Dispose(disposing);
-        }
+			base.Dispose(disposing);
+		}
 
-        private void OnSpawn( NpcSpawnEventArgs args)
-        {
-            if (args.Handled)
-                return;
+		private void OnSpawn( NpcSpawnEventArgs args)
+		{
+			if (args.Handled)
+				return;
 
-            if (blockedNPC.Contains(args.Npc.netID))
-            {
-                args.Handled = true;
+			if (blockedNPC.Contains(args.Npc.netID))
+			{
+				args.Handled = true;
 				args.Npc.active = false;
 				args.Npc.type = 0;
-                return;
-            }
-        }
-    }
+				return;
+			}
+		}
+	}
 }
