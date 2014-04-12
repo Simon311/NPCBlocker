@@ -46,6 +46,7 @@ namespace NPCBlocker
 		{
 			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", AddNPC, "blacknpc"));
 			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNPC, "whitenpc"));
+			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", PrintNPC, "printnpc"));
 			ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn, 100);
 			LoadConfig();
 		}
