@@ -82,18 +82,18 @@ namespace NPCBlocker
 
 			if (!int.TryParse(args.Parameters[0], out ID))
 			{
-				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not a valid number.", args.Parameters[0]));
+				args.Player.SendErrorMessage(String.Format("'{0}' is not a valid number.", args.Parameters[0]));
 				return;
 			}
 
 			if (blockedNPC.Contains(ID))
 			{
-				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is already blacklisted!", args.Parameters[0]));
+				args.Player.SendErrorMessage(String.Format("NPC ID {0} is already blacklisted!", args.Parameters[0]));
 				return;
 			}
 
 			blockedNPC.Add(ID);
-			args.Player.SendSuccessMessage(string.Format("NPC ID '{0}' succesfully blacklisted.", ID));
+			args.Player.SendSuccessMessage(string.Format("NPC ID {0} succesfully blacklisted.", ID));
 			SaveConfig();
 		}
 
@@ -101,7 +101,7 @@ namespace NPCBlocker
 		{
 			if (args.Parameters.Count < 1)
 			{
-				args.Player.SendMessage("You must specify an NPC ID to remove.", Color.Red);
+				args.Player.SendMessage("You must specify an NPC ID to un-blacklist.", Color.Red);
 				return;
 			}
 
@@ -109,18 +109,18 @@ namespace NPCBlocker
 
 			if (!int.TryParse(args.Parameters[0], out ID))
 			{
-				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not a valid number.", args.Parameters[0]));
+				args.Player.SendErrorMessage(String.Format("'{0}' is not a valid number.", args.Parameters[0]));
 				return;
 			}
 
 			if (!blockedNPC.Contains(ID))
 			{
-				args.Player.SendErrorMessage(String.Format("NPC ID '{0}' is not blacklisted!", args.Parameters[0]));
+				args.Player.SendErrorMessage(String.Format("NPC ID {0} is not blacklisted!", args.Parameters[0]));
 				return;
 			}
 
 			blockedNPC.Remove(ID);
-			args.Player.SendSuccessMessage(String.Format("NPC ID '{0}' succesfully un-blacklisted.", ID));
+			args.Player.SendSuccessMessage(String.Format("NPC ID {0} succesfully un-blacklisted.", ID));
 			SaveConfig();
 		}
 
