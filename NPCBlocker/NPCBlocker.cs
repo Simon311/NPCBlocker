@@ -1,17 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.IO;
 using System.Reflection;
 using TerrariaApi.Server;
 using TShockAPI;
-using TShockAPI.DB;
 using Terraria;
 using Newtonsoft.Json;
 
 namespace NPCBlocker
 {
-	[ApiVersion(1, 15)]
+	[ApiVersion(1, 16)]
 	public class NPCBlocker : TerrariaPlugin
 	{
 		private List<int> blockedNPC = new List<int>();
