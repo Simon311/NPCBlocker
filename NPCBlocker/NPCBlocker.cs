@@ -46,6 +46,7 @@ namespace NPCBlocker
 			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", DelNPC, "whitenpc"));
 			TShockAPI.Commands.ChatCommands.Add(new Command("resnpc", PrintNPC, "printnpc"));
 			ServerApi.Hooks.NpcSpawn.Register(this, OnSpawn, 100);
+			ServerApi.Hooks.NpcTransform.Register(this, OnTransform, 100);
 			LoadConfig();
 		}
 
@@ -130,7 +131,10 @@ namespace NPCBlocker
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
+			{
 				ServerApi.Hooks.NpcSpawn.Deregister(this, OnSpawn);
+				ServerApi.Hooks.NpcTransform.Deregister(this, OnTransform);
+			}
 
 			base.Dispose(disposing);
 		}
@@ -140,11 +144,21 @@ namespace NPCBlocker
 			if (args.Handled)
 				return;
 
-			if (blockedNPC.Contains(args.NpcId))
+			if (blockedNPC.Contains(Main.npc[args.NpcId].netID))
 			{
-				args.NpcId = 200;
 				args.Handled = true;
+				Main.npc[args.NpcId].active = false;
+				args.NpcId = 200;
 			}
+		}
+
+		private void OnTransform(NpcTransformationEventArgs args)
+		{
+			if (args.Handled)
+				return;
+
+			if (blockedNPC.Contains(Main.npc[args.NpcId].netID))
+				Main.npc[args.NpcId].active = false;
 		}
 	}
 }
