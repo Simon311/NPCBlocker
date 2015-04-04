@@ -141,7 +141,10 @@ namespace NPCBlocker
 				return;
 
 			if (blockedNPC.Contains(args.NpcId))
+			{
+				args.NpcId = 200;
 				args.Handled = true;
+			}
 		}
 	}
 }
