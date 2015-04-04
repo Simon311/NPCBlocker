@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace NPCBlocker
 {
-	[ApiVersion(1, 16)]
+	[ApiVersion(1, 17)]
 	public class NPCBlocker : TerrariaPlugin
 	{
 		private List<int> blockedNPC = new List<int>();
@@ -130,9 +130,7 @@ namespace NPCBlocker
 		protected override void Dispose(bool disposing)
 		{
 			if (disposing)
-			{
 				ServerApi.Hooks.NpcSpawn.Deregister(this, OnSpawn);
-			}
 
 			base.Dispose(disposing);
 		}
@@ -142,13 +140,8 @@ namespace NPCBlocker
 			if (args.Handled)
 				return;
 
-			if (blockedNPC.Contains(args.Npc.netID))
-			{
+			if (blockedNPC.Contains(args.NpcId))
 				args.Handled = true;
-				args.Npc.active = false;
-				args.Npc.type = 0;
-				return;
-			}
 		}
 	}
 }
