@@ -9,7 +9,7 @@ using Newtonsoft.Json;
 
 namespace NPCBlocker
 {
-	[ApiVersion(1, 17)]
+	[ApiVersion(1, 18)]
 	public class NPCBlocker : TerrariaPlugin
 	{
 		private List<int> blockedNPC = new List<int>();
